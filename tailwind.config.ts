@@ -1,5 +1,5 @@
-
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
 	darkMode: ["class"],
@@ -33,9 +33,9 @@ export default {
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
 				primary: {
-					DEFAULT: '#3b82f6', // blue-500
-					dark: '#1d4ed8', // blue-700
-					light: '#60a5fa', // blue-400
+					DEFAULT: '#e12b57', // red
+					dark: '#c01b47', // darker red
+					light: '#e95478', // lighter red
 					foreground: 'hsl(var(--primary-foreground))'
 				},
 				secondary: {
@@ -112,6 +112,10 @@ export default {
 				},
 				'shimmer': {
 					'100%': { transform: 'translateX(100%)' }
+				},
+				'marquee': {
+					'0%': { transform: 'translateX(0)' },
+					'100%': { transform: 'translateX(-50%)' }
 				}
 			},
 			animation: {
@@ -119,9 +123,10 @@ export default {
 				'accordion-up': 'accordion-up 0.2s ease-out',
 				'fade-in': 'fade-in 0.5s ease-out',
 				'slide-in-right': 'slide-in-right 0.3s ease-out',
-				'shimmer': 'shimmer 2s infinite'
+				'shimmer': 'shimmer 2s infinite',
+				'marquee': 'marquee linear infinite'
 			}
 		}
 	},
-	plugins: [require("tailwindcss-animate")],
+	plugins: [tailwindcssAnimate],
 } satisfies Config;

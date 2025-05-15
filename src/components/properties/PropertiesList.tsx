@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import PropertyCard from '@/components/PropertyCard';
 import { Loader2 } from 'lucide-react';
@@ -7,6 +6,17 @@ import { Property } from '@/data/properties';
 import { Button } from '@/components/ui/button';
 import { FilterState, SupabaseProperty } from './types';
 import { usePropertyMapper } from './usePropertyMapper';
+import { propertyTypes, cities } from '@/data/content';
+
+// Helper function to validate property type for filtering
+const validatePropertyTypeFilter = (type: string): string => {
+  return type && propertyTypes.includes(type) ? type : '';
+};
+
+// Helper function to validate city for filtering
+const validateCityFilter = (city: string): string => {
+  return city && cities.includes(city) ? city : '';
+};
 
 export const PropertiesList: React.FC<{ initialFilters?: FilterState }> = ({ 
   initialFilters 
@@ -23,42 +33,79 @@ export const PropertiesList: React.FC<{ initialFilters?: FilterState }> = ({
     bedrooms: null,
     bathrooms: null
   });
+  const prevInitialFiltersRef = useRef<FilterState | undefined>(initialFilters);
 
   const { mapSupabasePropertyToProperty } = usePropertyMapper();
 
+  // Update filters when initialFilters change
   useEffect(() => {
+    // Only update if initialFilters actually changed
+    if (initialFilters && 
+        JSON.stringify(initialFilters) !== JSON.stringify(prevInitialFiltersRef.current)) {
+      console.log('Initial filters changed:', initialFilters);
+      
+      // Validate the filter values before setting
+      const validatedFilters = {
+        ...initialFilters,
+        propertyType: validatePropertyTypeFilter(initialFilters.propertyType),
+        city: validateCityFilter(initialFilters.city),
+      };
+      
+      setFilters(validatedFilters);
+      prevInitialFiltersRef.current = initialFilters;
+    }
+  }, [initialFilters]);
+
+  // Fetch properties whenever filters change
+  useEffect(() => {
+    console.log('Filters changed, fetching properties:', filters);
     fetchProperties();
   }, [filters]);
 
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      console.log('Fetching properties with filters:', filters);
+      
       let query = supabase
         .from('properties')
         .select('*')
         .eq('is_published', true);
 
       // Apply filters
-      if (filters.listingType) {
+      if (filters.listingType && filters.listingType !== '') {
         query = query.eq('listing_type', filters.listingType);
+        console.log('Applied listing type filter:', filters.listingType);
       }
-      if (filters.propertyType) {
+      
+      if (filters.propertyType && filters.propertyType !== '') {
         query = query.eq('property_type', filters.propertyType);
+        console.log('Applied property type filter:', filters.propertyType);
       }
-      if (filters.city) {
+      
+      if (filters.city && filters.city !== '') {
         query = query.eq('city', filters.city);
+        console.log('Applied city filter:', filters.city);
       }
-      if (filters.minPrice) {
+      
+      if (filters.minPrice && filters.minPrice > 0) {
         query = query.gte('price', filters.minPrice);
+        console.log('Applied min price filter:', filters.minPrice);
       }
-      if (filters.maxPrice) {
+      
+      if (filters.maxPrice && filters.maxPrice > 0) {
         query = query.lte('price', filters.maxPrice);
+        console.log('Applied max price filter:', filters.maxPrice);
       }
-      if (filters.bedrooms) {
+      
+      if (filters.bedrooms && filters.bedrooms > 0) {
         query = query.gte('bedrooms', filters.bedrooms);
+        console.log('Applied bedrooms filter:', filters.bedrooms);
       }
-      if (filters.bathrooms) {
+      
+      if (filters.bathrooms && filters.bathrooms > 0) {
         query = query.gte('bathrooms', filters.bathrooms);
+        console.log('Applied bathrooms filter:', filters.bathrooms);
       }
 
       const { data, error } = await query.order('created_at', { ascending: false });
@@ -67,6 +114,8 @@ export const PropertiesList: React.FC<{ initialFilters?: FilterState }> = ({
         throw error;
       }
 
+      console.log('Properties fetched:', data?.length);
+      
       // Map Supabase properties to the format expected by PropertyCard
       const formattedProperties = await Promise.all(
         (data || []).map(mapSupabasePropertyToProperty)
@@ -83,7 +132,14 @@ export const PropertiesList: React.FC<{ initialFilters?: FilterState }> = ({
   };
 
   const updateFilters = (newFilters: FilterState) => {
-    setFilters(newFilters);
+    // Validate the filter values before setting
+    const validatedFilters = {
+      ...newFilters,
+      propertyType: validatePropertyTypeFilter(newFilters.propertyType),
+      city: validateCityFilter(newFilters.city),
+    };
+    
+    setFilters(validatedFilters);
   };
 
   if (loading) {
